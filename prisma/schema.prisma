@@ -1,0 +1,131 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Service {
+  id              String @id @default(cuid())
+  slug            String @unique
+  title           String
+  description     String
+  fullDescription String @db.Text
+  rating          Float  @default(5.0)
+  reviews         Int    @default(0)
+  duration        String
+  image           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  items           ServiceItem[]
+  orderItems      OrderItem[]
+  cartItems       CartItem[]
+  
+  @@map("services")
+}
+
+model ServiceItem {
+  id          String  @id @default(cuid())
+  serviceId   String
+  category    String  // men, women, children, wash-and-fold, wash-and-iron
+  name        String
+  description String?
+  price       Float
+  unit        String? // Per KG, Per Item
+  image       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  service     Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  orderItems  OrderItem[]
+  cartItems   CartItem[]
+  
+  @@map("service_items")
+}
+
+model Order {
+  id                  String      @id @default(cuid())
+  customerName        String
+  customerEmail       String
+  customerPhone       String?
+  customerAddress     String?     @db.Text
+  totalAmount         Float
+  status              OrderStatus @default(PENDING)
+  notes               String?     @db.Text
+  pickupDate          DateTime?
+  deliveryDate        DateTime?
+  specialInstructions String?     @db.Text
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  
+  // Relations
+  items               OrderItem[]
+  
+  @@map("orders")
+}
+
+model OrderItem {
+  id            String @id @default(cuid())
+  orderId       String
+  serviceId     String
+  serviceItemId String
+  quantity      Int
+  price         Float
+  totalPrice    Float
+  createdAt     DateTime @default(now())
+  
+  // Relations
+  order         Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  service       Service @relation(fields: [serviceId], references: [id])
+  serviceItem   ServiceItem @relation(fields: [serviceItemId], references: [id])
+  
+  @@map("order_items")
+}
+
+model Cart {
+  id        String @id @default(cuid())
+  sessionId String @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  // Relations
+  items     CartItem[]
+  
+  @@map("carts")
+}
+
+model CartItem {
+  id            String @id @default(cuid())
+  cartId        String
+  serviceId     String
+  serviceItemId String
+  quantity      Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  cart          Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  service       Service @relation(fields: [serviceId], references: [id])
+  serviceItem   ServiceItem @relation(fields: [serviceItemId], references: [id])
+  
+  @@unique([cartId, serviceItemId])
+  @@map("cart_items")
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  PROCESSING
+  READY_FOR_PICKUP
+  OUT_FOR_DELIVERY
+  COMPLETED
+  CANCELLED
+}
