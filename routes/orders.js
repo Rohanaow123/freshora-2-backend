@@ -1,8 +1,7 @@
 import express from "express"
 import { body, param, validationResult } from "express-validator"
-import { prisma } from "../lib/prisma"
-import type { CreateOrderRequest } from "../lib/types"
-import { sendOrderConfirmationEmail, sendOrderStatusUpdateEmail } from "../lib/email"
+import { prisma } from "../lib/prisma.js"
+import { sendOrderConfirmationEmail, sendOrderStatusUpdateEmail } from "../lib/email.js"
 
 const router = express.Router()
 
@@ -11,10 +10,10 @@ router.get("/", async (req, res) => {
   try {
     const { status, customerEmail, limit } = req.query
 
-    const whereClause: any = {}
+    const whereClause = {}
 
     if (status) {
-      whereClause.status = (status as string).toUpperCase()
+      whereClause.status = String(status).toUpperCase()
     }
 
     if (customerEmail) {
@@ -31,10 +30,8 @@ router.get("/", async (req, res) => {
           },
         },
       },
-      orderBy: {
-        createdAt: "desc",
-      },
-      take: limit ? Number.parseInt(limit as string) : undefined,
+      orderBy: { createdAt: "desc" },
+      take: limit ? parseInt(limit) : undefined,
     })
 
     const transformedOrders = orders.map((order) => ({
@@ -59,11 +56,7 @@ router.get("/", async (req, res) => {
       updatedAt: order.updatedAt.toISOString(),
     }))
 
-    res.json({
-      success: true,
-      data: transformedOrders,
-      total: transformedOrders.length,
-    })
+    res.json({ success: true, data: transformedOrders, total: transformedOrders.length })
   } catch (error) {
     console.error("Error fetching orders:", error)
     res.status(500).json({ success: false, error: "Failed to fetch orders" })
@@ -88,8 +81,7 @@ router.post(
         return res.status(400).json({ success: false, errors: errors.array() })
       }
 
-      const body: CreateOrderRequest = req.body
-      const { items, customerInfo, pickupDate, deliveryDate, specialInstructions } = body
+      const { items, customerInfo, pickupDate, deliveryDate, specialInstructions } = req.body
 
       const totalAmount = items.reduce((total, item) => total + item.price * item.quantity, 0)
 
@@ -213,10 +205,7 @@ router.get("/:id", [param("id").notEmpty().withMessage("Order ID is required")],
       updatedAt: order.updatedAt.toISOString(),
     }
 
-    res.json({
-      success: true,
-      data: transformedOrder,
-    })
+    res.json({ success: true, data: transformedOrder })
   } catch (error) {
     console.error("Error fetching order:", error)
     res.status(500).json({ success: false, error: "Failed to fetch order" })
@@ -244,23 +233,16 @@ router.put(
       const { id } = req.params
       const { status, pickupDate, deliveryDate } = req.body
 
-      const currentOrder = await prisma.order.findUnique({
-        where: { id },
-      })
-
+      const currentOrder = await prisma.order.findUnique({ where: { id } })
       if (!currentOrder) {
         return res.status(404).json({ success: false, error: "Order not found" })
       }
 
-      const updateData: any = { status: status.toUpperCase() }
-
+      const updateData = { status: status.toUpperCase() }
       if (pickupDate) updateData.pickupDate = new Date(pickupDate)
       if (deliveryDate) updateData.deliveryDate = new Date(deliveryDate)
 
-      const updatedOrder = await prisma.order.update({
-        where: { id },
-        data: updateData,
-      })
+      const updatedOrder = await prisma.order.update({ where: { id }, data: updateData })
 
       if (currentOrder.status !== updatedOrder.status) {
         await sendOrderStatusUpdateEmail(
@@ -291,7 +273,7 @@ router.put(
   },
 )
 
-// GET /api/orders/track/:id - Get order tracking information
+// GET /api/orders/track/:id - Track order
 router.get("/track/:id", [param("id").notEmpty().withMessage("Order ID is required")], async (req, res) => {
   try {
     const errors = validationResult(req)
@@ -300,7 +282,6 @@ router.get("/track/:id", [param("id").notEmpty().withMessage("Order ID is requir
     }
 
     const { id } = req.params
-
     const order = await prisma.order.findUnique({
       where: { id },
       include: {
@@ -322,9 +303,7 @@ router.get("/track/:id", [param("id").notEmpty().withMessage("Order ID is requir
       {
         status: "confirmed",
         label: "Order Confirmed",
-        completed: ["CONFIRMED", "PROCESSING", "READY_FOR_PICKUP", "OUT_FOR_DELIVERY", "COMPLETED"].includes(
-          order.status,
-        ),
+        completed: ["CONFIRMED", "PROCESSING", "READY_FOR_PICKUP", "OUT_FOR_DELIVERY", "COMPLETED"].includes(order.status),
       },
       {
         status: "processing",
@@ -371,10 +350,7 @@ router.get("/track/:id", [param("id").notEmpty().withMessage("Order ID is requir
       trackingSteps,
     }
 
-    res.json({
-      success: true,
-      data: trackingData,
-    })
+    res.json({ success: true, data: trackingData })
   } catch (error) {
     console.error("Error tracking order:", error)
     res.status(500).json({ success: false, error: "Failed to track order" })

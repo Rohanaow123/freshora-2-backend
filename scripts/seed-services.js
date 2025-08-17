@@ -1,4 +1,4 @@
-import { prisma } from "../lib/prisma"
+const { prisma } = require("../lib/prisma")
 
 const serviceData = [
   {
@@ -225,15 +225,7 @@ async function seedServices() {
 
       // Create service items
       for (const [category, categoryItems] of Object.entries(items)) {
-        const typedCategoryItems = categoryItems as Array<{
-          name: string
-          description: string
-          price: number
-          unit?: string
-          image?: string
-        }>
-
-        for (const item of typedCategoryItems) {
+        for (const item of categoryItems) {
           await prisma.serviceItem.create({
             data: {
               serviceId: service.id,

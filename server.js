@@ -6,9 +6,9 @@ import rateLimit from "express-rate-limit"
 import dotenv from "dotenv"
 
 // Import routes
-import servicesRouter from "./routes/services"
-import ordersRouter from "./routes/orders"
-import cartRouter from "./routes/cart"
+import servicesRouter from "./routes/services.js"
+import ordersRouter from "./routes/orders.js"
+import cartRouter from "./routes/cart.js"
 
 // Load environment variables
 dotenv.config()
@@ -22,7 +22,7 @@ app.use(
   cors({
     origin: process.env.FRONTEND_URL || "http://localhost:3000",
     credentials: true,
-  }),
+  })
 )
 
 // Rate limiting
@@ -56,7 +56,7 @@ app.use("*", (req, res) => {
 })
 
 // Global error handler
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+app.use((err, req, res, next) => {
   console.error("Global error handler:", err)
   res.status(500).json({
     success: false,
@@ -67,7 +67,7 @@ app.use((err: any, req: express.Request, res: express.Response, next: express.Ne
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`)
-  console.log(`📊 Health check: http://localhost:${PORT}/laundry`)
+  console.log(`📊 Health check: http://localhost:${PORT}/health`)
 })
 
 export default app

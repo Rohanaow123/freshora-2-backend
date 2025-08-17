@@ -1,7 +1,6 @@
 import express from "express"
 import { body, param, validationResult } from "express-validator"
-import { prisma } from "../lib/prisma"
-import type { AddToCartRequest } from "../lib/types"
+import { prisma } from "../lib/prisma.js"
 
 const router = express.Router()
 
@@ -11,7 +10,7 @@ router.get("/", async (req, res) => {
     const { sessionId = "default" } = req.query
 
     const cart = await prisma.cart.findUnique({
-      where: { sessionId: sessionId as string },
+      where: { sessionId: String(sessionId) },
       include: {
         items: {
           include: {
@@ -64,8 +63,7 @@ router.post(
         return res.status(400).json({ success: false, errors: errors.array() })
       }
 
-      const body: AddToCartRequest = req.body
-      const { item, sessionId = "default" } = body
+      const { item, sessionId = "default" } = req.body
 
       const cart = await prisma.cart.upsert({
         where: { sessionId },
@@ -144,7 +142,7 @@ router.post(
       console.error("Error adding to cart:", error)
       res.status(500).json({ success: false, error: "Failed to add item to cart" })
     }
-  },
+  }
 )
 
 // PUT /api/cart/:itemId - Update cart item quantity
@@ -198,7 +196,7 @@ router.put(
       console.error("Error updating cart item:", error)
       res.status(500).json({ success: false, error: "Failed to update cart item" })
     }
-  },
+  }
 )
 
 // DELETE /api/cart/:itemId - Remove item from cart
@@ -213,7 +211,7 @@ router.delete("/:itemId", [param("itemId").notEmpty().withMessage("Item ID is re
     const { sessionId = "default" } = req.query
 
     const cart = await prisma.cart.findUnique({
-      where: { sessionId: sessionId as string },
+      where: { sessionId: String(sessionId) },
     })
 
     if (!cart) {
@@ -243,7 +241,7 @@ router.delete("/", async (req, res) => {
     const { sessionId = "default" } = req.query
 
     const cart = await prisma.cart.findUnique({
-      where: { sessionId: sessionId as string },
+      where: { sessionId: String(sessionId) },
     })
 
     if (cart) {
