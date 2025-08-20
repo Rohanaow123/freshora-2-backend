@@ -1,8 +1,22 @@
 {
   "name": "freshora-2-backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "description": "",
+  "homepage": "https://github.com/rohan654321/freshora-2-backend#readme",
+  "bugs": {
+    "url": "https://github.com/rohan654321/freshora-2-backend/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rohan654321/freshora-2-backend.git"
+  },
+  "license": "ISC",
+  "author": "",
   "type": "module",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "tsx watch src/server.ts",
@@ -13,9 +27,6 @@
     "db:generate": "prisma generate",
     "db:seed": "prisma db seed",
     "db:studio": "prisma studio"
-  },
-  "prisma": {
-    "seed": "tsx ./scripts/seed-services.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.7.1",
@@ -40,10 +51,7 @@
     "tsx": "^4.6.2",
     "typescript": "^5"
   },
-  "author": "",
-  "license": "ISC",
-  "directories": {
-    "lib": "lib"
-  },
-  "description": ""
+  "prisma": {
+    "seed": "tsx ./scripts/seed-services.ts"
+  }
 }

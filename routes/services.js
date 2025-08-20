@@ -143,10 +143,11 @@ router.post(
     param("slug").notEmpty().withMessage("Slug is required"),
     body("name").notEmpty().withMessage("Item name is required"),
     body("category").notEmpty().withMessage("Category is required"),
-    body("price").isNumeric().withMessage("Price must be a number"),
+    body("price").isFloat({ gt: 0 }).withMessage("Price must be a positive number"),
   ],
   async (req, res) => {
     try {
+      // validate request
       const errors = validationResult(req);
       if (!errors.isEmpty()) {
         return res.status(400).json({ success: false, errors: errors.array() });
@@ -155,21 +156,25 @@ router.post(
       const { slug } = req.params;
       const { name, category, price, description, unit, image } = req.body;
 
+      // find parent service
       const service = await prisma.service.findUnique({
         where: { slug },
       });
 
       if (!service) {
-        return res.status(404).json({ success: false, error: "Service not found" });
+        return res
+          .status(404)
+          .json({ success: false, error: "Service not found" });
       }
 
+      // create item
       const newItem = await prisma.serviceItem.create({
         data: {
           serviceId: service.id,
           name,
           category,
           price: parseFloat(price),
-          description: description || "",
+          description: description || null,
           unit: unit || "Per Item",
           image: image || "/placeholder.svg?height=100&width=100&text=Item",
         },
@@ -178,7 +183,7 @@ router.post(
       res.status(201).json({
         success: true,
         data: newItem,
-        message: "Item added successfully",
+        message: `Item added successfully to service '${slug}'`,
       });
     } catch (error) {
       console.error("Error adding item:", error);
@@ -186,5 +191,6 @@ router.post(
     }
   }
 );
+
 
 export default router;
