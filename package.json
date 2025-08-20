@@ -1,7 +1,7 @@
 {
   "name": "freshora-2-backend",
   "version": "1.0.0",
-  "description": "",
+  "description": "Freshora Backend API",
   "homepage": "https://github.com/rohan654321/freshora-2-backend#readme",
   "bugs": {
     "url": "https://github.com/rohan654321/freshora-2-backend/issues"
@@ -13,19 +13,14 @@
   "license": "ISC",
   "author": "",
   "type": "module",
-  "main": "index.js",
-  "directories": {
-    "lib": "lib"
-  },
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "tsx watch src/server.ts",
-    "build": "tsc",
-    "start": "node dist/server.js",
-    "lint": "eslint src/**/*.ts",
+    "dev": "nodemon server.js",
+    "build": "eslint . --ext .js",
+    "start": "node server.js",
     "db:migrate": "prisma migrate dev",
     "db:generate": "prisma generate",
-    "db:seed": "prisma db seed",
+    "db:seed": "node ./scripts/seed-services.js",
     "db:studio": "prisma studio"
   },
   "dependencies": {
@@ -40,18 +35,16 @@
     "nodemailer": "^7.0.5"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
-    "@types/morgan": "^1.9.9",
-    "@types/node": "^20",
-    "@typescript-eslint/eslint-plugin": "^6.15.0",
-    "@typescript-eslint/parser": "^6.15.0",
-    "eslint": "^8.56.0",
+    "@eslint/js": "^9.33.0",
+    "eslint": "^9.33.0",
+    "eslint-plugin-react": "^7.37.5",
+    "globals": "^16.3.0",
+    "nodemon": "^3.1.0",
     "prisma": "^5.22.0",
-    "tsx": "^4.6.2",
-    "typescript": "^5"
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.40.0"
   },
   "prisma": {
-    "seed": "tsx ./scripts/seed-services.ts"
+    "seed": "node ./scripts/seed-services.js"
   }
 }
