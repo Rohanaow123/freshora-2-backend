@@ -1,4 +1,4 @@
-const { prisma } = require("../lib/prisma")
+import { prisma } from "../lib/prisma.js";
 
 const serviceData = [
   {
@@ -10,7 +10,6 @@ const serviceData = [
     rating: 5,
     reviews: 150,
     duration: "24-48 hours",
-    image: "/placeholder.svg?height=300&width=400&text=Laundry+Service",
     items: {
       men: [
         { name: "T-Shirts", price: 3, description: "Cotton t-shirts, polo shirts" },
@@ -47,7 +46,7 @@ const serviceData = [
     rating: 5,
     reviews: 89,
     duration: "2-3 days",
-    image: "/placeholder.svg?height=300&width=400&text=Dry+Cleaning",
+
     items: {
       men: [
         { name: "Suits", price: 20, description: "Two-piece business suits" },
@@ -79,7 +78,7 @@ const serviceData = [
     rating: 4,
     reviews: 67,
     duration: "6-24 hours",
-    image: "/placeholder.svg?height=300&width=400&text=Express+Laundry",
+
     items: {
       "wash-and-fold": [
         {
@@ -132,26 +131,26 @@ const serviceData = [
     rating: 5,
     reviews: 45,
     duration: "3-5 days",
-    image: "/placeholder.svg?height=300&width=400&text=Shoe+Cleaning",
+
     items: {
       men: [
         {
           name: "Men's Leather Shoe Deep Clean",
           description: "Premium cleaning and conditioning for men's leather shoes to restore shine and remove dirt.",
           price: 350,
-          image: "/images/shoes/men-leather.jpg",
+
         },
         {
           name: "Men's Suede Shoe Treatment",
           description: "Gentle suede cleaning to remove stains while preserving texture and color.",
           price: 400,
-          image: "/images/shoes/men-suede.jpg",
+
         },
         {
           name: "Men's Sneakers Restoration",
           description: "Deep cleaning and whitening for men's sneakers, removing dirt and yellowing.",
           price: 300,
-          image: "/images/shoes/men-sneakers.jpg",
+
         },
       ],
       women: [
@@ -159,19 +158,19 @@ const serviceData = [
           name: "Women's High Heel Cleaning",
           description: "Specialized cleaning for delicate high heels and designer shoes.",
           price: 380,
-          image: "/images/shoes/women-heels.jpg",
+
         },
         {
           name: "Women's Suede Boot Care",
           description: "Luxury treatment for suede boots, including stain removal and texture preservation.",
           price: 420,
-          image: "/images/shoes/women-suede-boots.jpg",
+
         },
         {
           name: "Women's Designer Sneakers Cleaning",
           description: "Gentle yet effective cleaning for premium women's sneakers.",
           price: 350,
-          image: "/images/shoes/women-sneakers.jpg",
+
         },
       ],
       children: [
@@ -179,19 +178,19 @@ const serviceData = [
           name: "Kids' School Shoe Cleaning",
           description: "Durable and safe cleaning for children's school shoes.",
           price: 250,
-          image: "/images/shoes/kids-school.jpg",
+
         },
         {
           name: "Kids' Sports Shoes Cleaning",
           description: "Deep cleaning for children's sports and activity shoes.",
           price: 220,
-          image: "/images/shoes/kids-sports.jpg",
+
         },
         {
           name: "Kids' Party Shoes Shine",
           description: "Gentle cleaning for kids' formal and party shoes.",
           price: 260,
-          image: "/images/shoes/kids-party.jpg",
+
         },
       ],
     },

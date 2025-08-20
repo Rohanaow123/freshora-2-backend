@@ -25,7 +25,6 @@ router.get("/", async (req, res) => {
           price: item.price,
           description: item.description || "",
           unit: item.unit || "Per Item",
-          image: item.image,
         });
         return acc;
       }, {}),
@@ -57,7 +56,7 @@ router.post(
       }
 
       const body = req.body;
-      const { title, description, fullDescription, rating, reviews, duration, image, slug } = body;
+      const { title, description, fullDescription, rating, reviews, duration, slug } = body;
 
       const newService = await prisma.service.create({
         data: {
@@ -68,7 +67,7 @@ router.post(
           rating: rating || 5,
           reviews: reviews || 0,
           duration: duration || "24-48 hours",
-          image: image || "/placeholder.svg?height=300&width=400&text=Service",
+        
         },
         include: {
           items: true,
@@ -120,7 +119,7 @@ router.get("/:slug", [param("slug").notEmpty().withMessage("Slug is required")],
           price: item.price,
           description: item.description || "",
           unit: item.unit || "Per Item",
-          image: item.image,
+
         });
         return acc;
       }, {}),
@@ -154,7 +153,7 @@ router.post(
       }
 
       const { slug } = req.params;
-      const { name, category, price, description, unit, image } = req.body;
+      const { name, category, price, description, unit } = req.body;
 
       // find parent service
       const service = await prisma.service.findUnique({
@@ -176,7 +175,6 @@ router.post(
           price: parseFloat(price),
           description: description || null,
           unit: unit || "Per Item",
-          image: image || "/placeholder.svg?height=100&width=100&text=Item",
         },
       });
 
