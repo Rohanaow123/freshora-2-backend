@@ -20,10 +20,14 @@ const PORT = process.env.PORT || 3001
 app.use(helmet())
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: [
+      "http://localhost:3000", 
+      "https://main.d7q8zpc0vg3v1.amplifyapp.com"
+    ],
     credentials: true,
   })
 )
+
 
 // Rate limiting
 const limiter = rateLimit({
