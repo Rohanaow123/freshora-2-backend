@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -11,41 +8,38 @@ datasource db {
 }
 
 model Service {
-  id              String @id @default(cuid())
-  slug            String @unique
+  id              String        @id @default(cuid())
+  slug            String        @unique
   title           String
   description     String
-  fullDescription String @db.Text
-  rating          Float  @default(5.0)
-  reviews         Int    @default(0)
+  fullDescription String        @db.Text
+  rating          Float         @default(5)
+  reviews         Int           @default(0)
   duration        String
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  // Relations
-  items           ServiceItem[]
-  orderItems      OrderItem[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
   cartItems       CartItem[]
-  
+  orderItems      OrderItem[]
+  items           ServiceItem[]
+
   @@map("services")
 }
 
 model ServiceItem {
-  id          String  @id @default(cuid())
+  id          String      @id @default(cuid())
   serviceId   String
-  category    String  // men, women, house-hold-items, wash-and-fold, wash-and-iron
+  category    String
   name        String
   description String?
   price       Float
-  unit        String? // Per KG, Per Item
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  service     Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
-  orderItems  OrderItem[]
+  unit        String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
   cartItems   CartItem[]
-  
+  orderItems  OrderItem[]
+  service     Service     @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@index([serviceId], map: "service_items_serviceId_fkey")
   @@map("service_items")
 }
 
@@ -54,67 +48,64 @@ model Order {
   customerName        String
   customerEmail       String
   customerPhone       String?
-  customerAddress     String?     @db.Text
+  customerAddress     String?
   totalAmount         Float
   status              OrderStatus @default(PENDING)
-  notes               String?     @db.Text
+  notes               String?
   pickupDate          DateTime?
   deliveryDate        DateTime?
-  specialInstructions String?     @db.Text
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
-  
-  // Relations
+  specialInstructions String?
   items               OrderItem[]
-  
+
   @@map("orders")
 }
 
 model OrderItem {
-  id            String @id @default(cuid())
+  id            String      @id @default(cuid())
   orderId       String
   serviceId     String
   serviceItemId String
   quantity      Int
   price         Float
   totalPrice    Float
-  createdAt     DateTime @default(now())
-  
-  // Relations
-  order         Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  service       Service @relation(fields: [serviceId], references: [id])
+  createdAt     DateTime    @default(now())
+  order         Order       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  service       Service     @relation(fields: [serviceId], references: [id])
   serviceItem   ServiceItem @relation(fields: [serviceItemId], references: [id])
-  
+
+  @@index([orderId], map: "order_items_orderId_fkey")
+  @@index([serviceId], map: "order_items_serviceId_fkey")
+  @@index([serviceItemId], map: "order_items_serviceItemId_fkey")
   @@map("order_items")
 }
 
 model Cart {
-  id        String @id @default(cuid())
-  sessionId String @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  
-  // Relations
+  id        String     @id @default(cuid())
+  sessionId String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
   items     CartItem[]
-  
+
   @@map("carts")
 }
 
 model CartItem {
-  id            String @id @default(cuid())
+  id            String      @id @default(cuid())
   cartId        String
   serviceId     String
   serviceItemId String
   quantity      Int
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
-  // Relations
-  cart          Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
-  service       Service @relation(fields: [serviceId], references: [id])
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  cart          Cart        @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  service       Service     @relation(fields: [serviceId], references: [id])
   serviceItem   ServiceItem @relation(fields: [serviceItemId], references: [id])
-  
+
   @@unique([cartId, serviceItemId])
+  @@index([serviceId], map: "cart_items_serviceId_fkey")
+  @@index([serviceItemId], map: "cart_items_serviceItemId_fkey")
   @@map("cart_items")
 }
 
