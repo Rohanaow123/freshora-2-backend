@@ -14,17 +14,18 @@
   "author": "",
   "type": "module",
   "main": "server.js",
-"scripts": {
-  "build": "cpx \"server.js\" dist && cpx \"routes/**/*\" dist/routes && cpx \"lib/**/*\" dist/lib && cpx \"prisma/**/*\" dist/prisma && cpx package.json dist",
-  "start": "node dist/server.js",
-  "db:migrate": "prisma migrate dev",
-  "db:generate": "prisma generate",
-  "db:seed": "node ./scripts/seed-services.js",
-  "db:studio": "prisma studio"
-},
+  "scripts": {
+    "build": "cpx \"server.js\" dist && cpx \"routes/**/*\" dist/routes && cpx \"lib/**/*\" dist/lib && cpx \"prisma/**/*\" dist/prisma && cpx package.json dist",
+    "start": "node dist/server.js",
+    "db:migrate": "prisma migrate dev",
+    "db:generate": "prisma generate",
+    "db:seed": "node ./scripts/seed-services.js",
+    "db:studio": "prisma studio"
+  },
   "dependencies": {
     "@prisma/client": "^5.7.1",
     "cors": "^2.8.5",
+    "cpx": "^1.5.0",
     "dotenv": "^16.3.1",
     "express": "^4.21.2",
     "express-rate-limit": "^7.1.5",
@@ -35,7 +36,6 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.33.0",
-    "cpx": "^1.5.0",
     "eslint": "^9.33.0",
     "eslint-plugin-react": "^7.37.5",
     "globals": "^16.3.0",
