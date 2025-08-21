@@ -1,5 +1,7 @@
-import { prisma } from "../lib/prisma.js";
+const { PrismaClient } = require("@prisma/client");
+const prisma = new PrismaClient();
 
+// ---- Your Data ----
 const serviceData = [
   {
     slug: "laundry-services",
@@ -46,7 +48,6 @@ const serviceData = [
     rating: 5,
     reviews: 89,
     duration: "2-3 days",
-
     items: {
       men: [
         { name: "Suits", price: 20, description: "Two-piece business suits" },
@@ -78,7 +79,6 @@ const serviceData = [
     rating: 4,
     reviews: 67,
     duration: "6-24 hours",
-
     items: {
       "wash-and-fold": [
         {
@@ -131,26 +131,22 @@ const serviceData = [
     rating: 5,
     reviews: 45,
     duration: "3-5 days",
-
     items: {
       men: [
         {
           name: "Men's Leather Shoe Deep Clean",
           description: "Premium cleaning and conditioning for men's leather shoes to restore shine and remove dirt.",
           price: 350,
-
         },
         {
           name: "Men's Suede Shoe Treatment",
           description: "Gentle suede cleaning to remove stains while preserving texture and color.",
           price: 400,
-
         },
         {
           name: "Men's Sneakers Restoration",
           description: "Deep cleaning and whitening for men's sneakers, removing dirt and yellowing.",
           price: 300,
-
         },
       ],
       women: [
@@ -158,19 +154,16 @@ const serviceData = [
           name: "Women's High Heel Cleaning",
           description: "Specialized cleaning for delicate high heels and designer shoes.",
           price: 380,
-
         },
         {
           name: "Women's Suede Boot Care",
           description: "Luxury treatment for suede boots, including stain removal and texture preservation.",
           price: 420,
-
         },
         {
           name: "Women's Designer Sneakers Cleaning",
           description: "Gentle yet effective cleaning for premium women's sneakers.",
           price: 350,
-
         },
       ],
       children: [
@@ -178,49 +171,47 @@ const serviceData = [
           name: "Kids' School Shoe Cleaning",
           description: "Durable and safe cleaning for children's school shoes.",
           price: 250,
-
         },
         {
           name: "Kids' Sports Shoes Cleaning",
           description: "Deep cleaning for children's sports and activity shoes.",
           price: 220,
-
         },
         {
           name: "Kids' Party Shoes Shine",
           description: "Gentle cleaning for kids' formal and party shoes.",
           price: 260,
-
         },
       ],
     },
   },
-]
+];
 
+// ---- Seed Function ----
 async function seedServices() {
-  console.log("[v0] Starting database seeding...")
+  console.log("[v0] Starting database seeding...");
 
   try {
-    // Clear existing data
-    await prisma.cartItem.deleteMany()
-    await prisma.cart.deleteMany()
-    await prisma.orderItem.deleteMany()
-    await prisma.order.deleteMany()
-    await prisma.serviceItem.deleteMany()
-    await prisma.service.deleteMany()
+    // Clear existing data (delete in reverse order of relations)
+    await prisma.cartItem.deleteMany();
+    await prisma.cart.deleteMany();
+    await prisma.orderItem.deleteMany();
+    await prisma.order.deleteMany();
+    await prisma.serviceItem.deleteMany();
+    await prisma.service.deleteMany();
 
-    console.log("[v0] Cleared existing data")
+    console.log("[v0] Cleared existing data");
 
-    // Seed services and items
+    // Insert services + items
     for (const serviceInfo of serviceData) {
-      const { items, ...serviceDetails } = serviceInfo
+      const { items, ...serviceDetails } = serviceInfo;
 
       // Create service
       const service = await prisma.service.create({
         data: serviceDetails,
-      })
+      });
 
-      console.log(`[v0] Created service: ${service.title}`)
+      console.log(`[v0] Created service: ${service.title}`);
 
       // Create service items
       for (const [category, categoryItems] of Object.entries(items)) {
@@ -233,23 +224,24 @@ async function seedServices() {
               description: item.description,
               price: item.price,
               unit: item.unit || "Per Item",
-              image: item.image,
             },
-          })
+          });
         }
       }
 
-      console.log(`[v0] Created ${Object.values(items).flat().length} items for ${service.title}`)
+      console.log(
+        `[v0] Created ${Object.values(items).flat().length} items for ${service.title}`
+      );
     }
 
-    console.log("[v0] Database seeding completed successfully!")
+    console.log("[v0] Database seeding completed successfully!");
   } catch (error) {
-    console.error("[v0] Error seeding database:", error)
-    throw error
+    console.error("[v0] Error seeding database:", error);
+    process.exit(1);
   } finally {
-    await prisma.$disconnect()
+    await prisma.$disconnect();
   }
 }
 
-// Run the seed function
-seedServices()
+// ---- Run Seed ----
+seedServices();
