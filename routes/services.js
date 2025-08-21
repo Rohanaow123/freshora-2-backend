@@ -52,38 +52,48 @@ router.post(
     body("title").notEmpty().withMessage("Title is required"),
     body("description").notEmpty().withMessage("Description is required"),
     body("slug").notEmpty().withMessage("Slug is required"),
+    body("fullDescription").optional().isString(),
+    body("rating").optional().isFloat({ min: 0, max: 5 }),
+    body("reviews").optional().isInt({ min: 0 }),
+    body("duration").optional().isString(),
   ],
   async (req, res) => {
+    // ✅ Check validation
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ success: false, errors: errors.array() });
+    }
+
     try {
-      const validationError = handleValidation(req, res)
-      if (validationError) return validationError
-
-      const { title, description, fullDescription, rating, reviews, duration, slug } = req.body
-
-      const newService = await prisma.service.create({
+      const service = await prisma.service.create({
         data: {
-          slug,
-          title,
-          description,
-          fullDescription: fullDescription || description,
-          rating: rating || 5,
-          reviews: reviews || 0,
-          duration: duration || "24-48 hours",
+          title: req.body.title,
+          description: req.body.description,
+          slug: req.body.slug,
+          fullDescription: req.body.fullDescription || null,
+          rating: req.body.rating || null,
+          reviews: req.body.reviews || null,
+          duration: req.body.duration || null,
         },
-        include: { items: true },
-      })
+      });
 
-      res.status(201).json({
-        success: true,
-        data: newService,
-        message: "Service created successfully",
-      })
+      return res.status(201).json({ success: true, data: service });
     } catch (error) {
-      console.error("Error creating service:", error)
-      res.status(500).json({ success: false, error: error.message || "Failed to create service" })
+      console.error("❌ Error creating service:", error);
+
+      // Prisma unique constraint error
+      if (error.code === "P2002") {
+        return res
+          .status(400)
+          .json({ success: false, error: `Slug '${req.body.slug}' already exists.` });
+      }
+
+      return res
+        .status(500)
+        .json({ success: false, error: error.message || "Internal Server Error" });
     }
   }
-)
+);
 
 // ==========================
 // GET /api/services/:slug - Get service by slug
