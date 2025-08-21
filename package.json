@@ -16,7 +16,7 @@
   "main": "server.js",
 "scripts": {
   "build": "mkdir -p dist/routes dist/lib dist/prisma && cp server.js dist/ && cp -r routes/* dist/routes/ && cp -r lib/* dist/lib/ && cp -r prisma/* dist/prisma/ && cp package.json dist/",
-  "start": "node dist/server.js",
+  "start": "node server.js",
   "db:migrate": "prisma migrate dev",
   "db:generate": "prisma generate",
   "db:seed": "node ./scripts/seed-services.js",
