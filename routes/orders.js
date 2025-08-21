@@ -1,8 +1,15 @@
 import express from "express"
 import { body, validationResult } from "express-validator"
 import { prisma } from "../lib/prisma.js"
+import { sendOrderConfirmationEmail } from "../lib/email.js"
 
 const router = express.Router()
+
+function generateOrderId() {
+  const timestamp = Date.now().toString(36)
+  const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase()
+  return `ORD-${timestamp}-${randomStr}`
+}
 
 // GET /api/orders - Get all orders
 router.get("/", async (req, res) => {
@@ -61,8 +68,11 @@ router.post(
         specialInstructions,
       } = req.body
 
+      const orderId = generateOrderId()
+
       const order = await prisma.order.create({
         data: {
+          orderId, // Added orderId field
           customerName,
           customerEmail,
           customerPhone,
@@ -92,6 +102,21 @@ router.post(
           },
         },
       })
+
+      try {
+        await sendOrderConfirmationEmail({
+          customerEmail,
+          customerName,
+          orderId: order.orderId,
+          totalAmount: order.totalAmount,
+          items: order.items,
+          pickupDate: order.pickupDate,
+          deliveryDate: order.deliveryDate,
+        })
+      } catch (emailError) {
+        console.error("Failed to send confirmation email:", emailError)
+        // Don't fail the order creation if email fails
+      }
 
       res.status(201).json({
         success: true,
