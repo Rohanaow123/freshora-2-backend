@@ -179,10 +179,14 @@ router.post(
         data: newItem,
         message: `Item added successfully to service '${slug}'`,
       })
-    } catch (error) {
-      console.error("Error adding item:", error)
-      res.status(500).json({ success: false, error: "Failed to add item" })
-    }
+    }  catch (error) {
+  console.error("Error creating service:", error) // will show Prisma error code
+  res.status(500).json({ 
+    success: false, 
+    error: error.message || "Failed to create service" 
+  })
+}
+
   },
 )
 
