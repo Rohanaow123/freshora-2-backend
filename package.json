@@ -14,14 +14,14 @@
   "author": "",
   "type": "module",
   "main": "server.js",
-  "scripts": {
-    "build": "cpx \"server.js\" dist && cpx \"routes/**/*\" dist/routes && cpx \"lib/**/*\" dist/lib && cpx \"prisma/**/*\" dist/prisma && cpx package.json dist",
-    "start": "node dist/server.js",
-    "db:migrate": "prisma migrate dev",
-    "db:generate": "prisma generate",
-    "db:seed": "node ./scripts/seed-services.js",
-    "db:studio": "prisma studio"
-  },
+"scripts": {
+  "build": "mkdir -p dist/routes dist/lib dist/prisma && cp server.js dist/ && cp -r routes/* dist/routes/ && cp -r lib/* dist/lib/ && cp -r prisma/* dist/prisma/ && cp package.json dist/",
+  "start": "node dist/server.js",
+  "db:migrate": "prisma migrate dev",
+  "db:generate": "prisma generate",
+  "db:seed": "node ./scripts/seed-services.js",
+  "db:studio": "prisma studio"
+},
   "dependencies": {
     "@prisma/client": "^5.7.1",
     "cors": "^2.8.5",

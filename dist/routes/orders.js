@@ -19,7 +19,6 @@ router.get("/", async (req, res) => {
     if (customerEmail) {
       whereClause.customerEmail = customerEmail
     }
-
     const orders = await prisma.order.findMany({
       where: whereClause,
       include: {
@@ -358,3 +357,4 @@ router.get("/track/:id", [param("id").notEmpty().withMessage("Order ID is requir
 })
 
 export default router
+  
