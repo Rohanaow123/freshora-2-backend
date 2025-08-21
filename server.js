@@ -21,18 +21,17 @@ app.use(helmet())
 app.use(
   cors({
     origin: [
-      "http://localhost:3000", 
+      "http://localhost:3000",
       "https://main.d7q8zpc0vg3v1.amplifyapp.com"
     ],
     credentials: true,
   })
 )
 
-
 // Rate limiting
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  max: 100, // limit each IP to 100 requests per window
   message: "Too many requests from this IP, please try again later.",
 })
 app.use(limiter)
@@ -43,6 +42,15 @@ app.use(morgan("combined"))
 // Body parsing middleware
 app.use(express.json({ limit: "10mb" }))
 app.use(express.urlencoded({ extended: true }))
+
+// Root endpoint (for quick check in browser)
+app.get("/", (req, res) => {
+  res.json({
+    message: "🚀 Freshora Backend API is running",
+    health: "/health",
+    endpoints: ["/api/services", "/api/orders", "/api/cart"]
+  })
+})
 
 // Health check endpoint
 app.get("/health", (req, res) => {
@@ -60,7 +68,7 @@ app.use("*", (req, res) => {
 })
 
 // Global error handler
-app.use((err, req, res) => {
+app.use((err, req, res, next) => {
   console.error("Global error handler:", err)
   res.status(500).json({
     success: false,
@@ -69,9 +77,12 @@ app.use((err, req, res) => {
   })
 })
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`)
-  console.log(`📊 Health check: http://localhost:${PORT}/health`)
-})
+// Start server only in local/dev mode
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`)
+    console.log(`📊 Health check: http://localhost:${PORT}/health`)
+  })
+}
 
 export default app
