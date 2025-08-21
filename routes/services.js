@@ -4,21 +4,27 @@ import { prisma } from "../lib/prisma.js" // note the .js extension in ESM
 
 const router = express.Router()
 
+// ✅ Helper: send validation errors
+const handleValidation = (req, res) => {
+  const errors = validationResult(req)
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ success: false, errors: errors.array() })
+  }
+}
+
+// ==========================
 // GET /api/services - Get all services
+// ==========================
 router.get("/", async (req, res) => {
   try {
     const services = await prisma.service.findMany({
-      include: {
-        items: true,
-      },
+      include: { items: true },
     })
 
     const transformedServices = services.map((service) => ({
       ...service,
       items: service.items.reduce((acc, item) => {
-        if (!acc[item.category]) {
-          acc[item.category] = []
-        }
+        if (!acc[item.category]) acc[item.category] = []
         acc[item.category].push({
           id: item.id,
           name: item.name,
@@ -30,17 +36,16 @@ router.get("/", async (req, res) => {
       }, {}),
     }))
 
-    res.json({
-      success: true,
-      data: transformedServices,
-    })
+    res.json({ success: true, data: transformedServices })
   } catch (error) {
     console.error("Error fetching services:", error)
-    res.status(500).json({ success: false, error: "Failed to fetch services" })
+    res.status(500).json({ success: false, error: error.message || "Failed to fetch services" })
   }
 })
 
+// ==========================
 // POST /api/services - Add a new service
+// ==========================
 router.post(
   "/",
   [
@@ -50,13 +55,10 @@ router.post(
   ],
   async (req, res) => {
     try {
-      const errors = validationResult(req)
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ success: false, errors: errors.array() })
-      }
+      const validationError = handleValidation(req, res)
+      if (validationError) return validationError
 
-      const body = req.body
-      const { title, description, fullDescription, rating, reviews, duration, slug } = body
+      const { title, description, fullDescription, rating, reviews, duration, slug } = req.body
 
       const newService = await prisma.service.create({
         data: {
@@ -68,9 +70,7 @@ router.post(
           reviews: reviews || 0,
           duration: duration || "24-48 hours",
         },
-        include: {
-          items: true,
-        },
+        include: { items: true },
       })
 
       res.status(201).json({
@@ -80,26 +80,23 @@ router.post(
       })
     } catch (error) {
       console.error("Error creating service:", error)
-      res.status(500).json({ success: false, error: "Failed to create service" })
+      res.status(500).json({ success: false, error: error.message || "Failed to create service" })
     }
-  },
+  }
 )
 
+// ==========================
 // GET /api/services/:slug - Get service by slug
+// ==========================
 router.get("/:slug", [param("slug").notEmpty().withMessage("Slug is required")], async (req, res) => {
   try {
-    const errors = validationResult(req)
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() })
-    }
+    const validationError = handleValidation(req, res)
+    if (validationError) return validationError
 
     const { slug } = req.params
-
     const service = await prisma.service.findUnique({
       where: { slug },
-      include: {
-        items: true,
-      },
+      include: { items: true },
     })
 
     if (!service) {
@@ -109,9 +106,7 @@ router.get("/:slug", [param("slug").notEmpty().withMessage("Slug is required")],
     const transformedService = {
       ...service,
       items: service.items.reduce((acc, item) => {
-        if (!acc[item.category]) {
-          acc[item.category] = []
-        }
+        if (!acc[item.category]) acc[item.category] = []
         acc[item.category].push({
           id: item.id,
           name: item.name,
@@ -123,17 +118,16 @@ router.get("/:slug", [param("slug").notEmpty().withMessage("Slug is required")],
       }, {}),
     }
 
-    res.json({
-      success: true,
-      data: transformedService,
-    })
+    res.json({ success: true, data: transformedService })
   } catch (error) {
     console.error("Error fetching service:", error)
-    res.status(500).json({ success: false, error: "Failed to fetch service" })
+    res.status(500).json({ success: false, error: error.message || "Failed to fetch service" })
   }
 })
 
-// POST /api/services/:slug/items - Add item to service
+// ==========================
+// POST /api/services/:slug/items - Add item to a service
+// ==========================
 router.post(
   "/:slug/items",
   [
@@ -144,25 +138,17 @@ router.post(
   ],
   async (req, res) => {
     try {
-      // validate request
-      const errors = validationResult(req)
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ success: false, errors: errors.array() })
-      }
+      const validationError = handleValidation(req, res)
+      if (validationError) return validationError
 
       const { slug } = req.params
       const { name, category, price, description, unit } = req.body
 
-      // find parent service
-      const service = await prisma.service.findUnique({
-        where: { slug },
-      })
-
+      const service = await prisma.service.findUnique({ where: { slug } })
       if (!service) {
         return res.status(404).json({ success: false, error: "Service not found" })
       }
 
-      // create item
       const newItem = await prisma.serviceItem.create({
         data: {
           serviceId: service.id,
@@ -179,15 +165,11 @@ router.post(
         data: newItem,
         message: `Item added successfully to service '${slug}'`,
       })
-    }  catch (error) {
-  console.error("Error creating service:", error) // will show Prisma error code
-  res.status(500).json({ 
-    success: false, 
-    error: error.message || "Failed to create service" 
-  })
-}
-
-  },
+    } catch (error) {
+      console.error("Error adding item:", error)
+      res.status(500).json({ success: false, error: error.message || "Failed to add item" })
+    }
+  }
 )
 
 export default router
