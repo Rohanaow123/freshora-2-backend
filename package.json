@@ -14,35 +14,31 @@
   "author": "",
   "type": "module",
   "main": "server.js",
-"scripts": {
-  "build": "mkdir -p dist/routes dist/lib dist/prisma && cp server.js dist/ && cp -r routes/* dist/routes/ && cp -r lib/* dist/lib/ && cp -r prisma/* dist/prisma/ && cp package.json dist/",
-  "start": "node server.js",
-  "db:migrate": "prisma migrate dev",
-  "db:generate": "prisma generate",
-  "db:seed": "node ./scripts/seed-services.js",
-  "db:studio": "prisma studio"
-},
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "dev": "nodemon server.js",
+    "start": "node server.js",
+    "build": "echo 'No build step required'",
+    "db:push": "prisma db push",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio"
+  },
   "dependencies": {
-    "@prisma/client": "^5.7.1",
-    "cors": "^2.8.5",
-    "cpx": "^1.5.0",
-    "dotenv": "^16.3.1",
-    "express": "^4.21.2",
-    "express-rate-limit": "^7.1.5",
+    "@prisma/client": "^5.22.0",
+    "express": "^4.18.2",
     "express-validator": "^7.0.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
     "helmet": "^7.1.0",
     "morgan": "^1.10.0",
-    "nodemailer": "^7.0.5"
+    "express-rate-limit": "^7.1.5"
   },
   "devDependencies": {
-    "@eslint/js": "^9.33.0",
-    "eslint": "^9.33.0",
-    "eslint-plugin-react": "^7.37.5",
-    "globals": "^16.3.0",
-    "nodemon": "^3.1.0",
+    "@types/node": "^20",
     "prisma": "^5.22.0",
-    "typescript": "^5.9.2",
-    "typescript-eslint": "^8.40.0"
+    "nodemon": "^3.0.1"
   },
   "prisma": {
     "seed": "node ./scripts/seed-services.js"

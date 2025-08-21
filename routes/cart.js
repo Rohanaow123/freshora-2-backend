@@ -1,167 +1,153 @@
 import express from "express"
-import { body, param, validationResult } from "express-validator"
+import { body, validationResult } from "express-validator"
 import { prisma } from "../lib/prisma.js"
 
 const router = express.Router()
 
-// Helper: format cart response
-const formatCart = (cart) => {
-  const items =
-    cart?.items.map((item) => ({
-      serviceItemId: item.serviceItem.id,
-      name: item.serviceItem.name,
-      category: item.serviceItem.category,
-      serviceType: item.service.title,
-      price: item.serviceItem.price,
-      quantity: item.quantity,
-    })) || []
-
-  const totalItems = items.reduce((sum, i) => sum + i.quantity, 0)
-  const totalPrice = items.reduce((sum, i) => sum + i.price * i.quantity, 0)
-
-  return { items, totalItems, totalPrice }
-}
-
-// GET /api/cart - Fetch cart
-router.get("/", async (req, res) => {
+// GET /api/cart/:sessionId - Get cart by session ID
+router.get("/:sessionId", async (req, res) => {
   try {
-    const { sessionId = "default" } = req.query
+    const { sessionId } = req.params
 
-    const cart = await prisma.cart.findUnique({
-      where: { sessionId: String(sessionId) },
-      include: { items: { include: { service: true, serviceItem: true } } },
+    let cart = await prisma.cart.findUnique({
+      where: { sessionId },
+      include: {
+        items: {
+          include: {
+            service: true,
+            serviceItem: true,
+          },
+        },
+      },
     })
 
-    res.json({ success: true, data: formatCart(cart) })
+    if (!cart) {
+      // Create empty cart if it doesn't exist
+      cart = await prisma.cart.create({
+        data: { sessionId },
+        include: {
+          items: {
+            include: {
+              service: true,
+              serviceItem: true,
+            },
+          },
+        },
+      })
+    }
+
+    res.json({
+      success: true,
+      data: cart,
+    })
   } catch (error) {
     console.error("Error fetching cart:", error)
-    res.status(500).json({ success: false, error: "Failed to fetch cart" })
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch cart",
+    })
   }
 })
 
-// POST /api/cart - Add item
+// POST /api/cart - Add item to cart
 router.post(
   "/",
   [
-    body("item.id").notEmpty().withMessage("Item ID is required"),
-    body("item.quantity").optional().isInt({ min: 1 }).withMessage("Quantity must be >= 1"),
+    body("sessionId").notEmpty().withMessage("Session ID is required"),
+    body("serviceId").notEmpty().withMessage("Service ID is required"),
+    body("serviceItemId").notEmpty().withMessage("Service item ID is required"),
+    body("quantity").isInt({ min: 1 }).withMessage("Quantity must be at least 1"),
   ],
   async (req, res) => {
     try {
       const errors = validationResult(req)
-      if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() })
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ success: false, errors: errors.array() })
+      }
 
-      const { item, sessionId = "default" } = req.body
+      const { sessionId, serviceId, serviceItemId, quantity } = req.body
 
-      // Ensure cart exists
-      const cart = await prisma.cart.upsert({
+      // Find or create cart
+      let cart = await prisma.cart.findUnique({
         where: { sessionId },
-        update: {},
-        create: { sessionId },
       })
 
-      // Check serviceItem exists
-      const serviceItem = await prisma.serviceItem.findUnique({
-        where: { id: item.id },
-      })
-      if (!serviceItem) return res.status(404).json({ success: false, error: "Service item not found" })
+      if (!cart) {
+        cart = await prisma.cart.create({
+          data: { sessionId },
+        })
+      }
 
-      // Check if already in cart
-      const existing = await prisma.cartItem.findUnique({
-        where: { cartId_serviceItemId: { cartId: cart.id, serviceItemId: item.id } },
+      // Check if item already exists in cart
+      const existingItem = await prisma.cartItem.findUnique({
+        where: {
+          cartId_serviceItemId: {
+            cartId: cart.id,
+            serviceItemId,
+          },
+        },
       })
 
-      if (existing) {
-        await prisma.cartItem.update({
-          where: { id: existing.id },
-          data: { quantity: existing.quantity + (item.quantity || 1) },
+      let cartItem
+      if (existingItem) {
+        // Update quantity
+        cartItem = await prisma.cartItem.update({
+          where: { id: existingItem.id },
+          data: { quantity: existingItem.quantity + quantity },
+          include: {
+            service: true,
+            serviceItem: true,
+          },
         })
       } else {
-        await prisma.cartItem.create({
+        // Create new cart item
+        cartItem = await prisma.cartItem.create({
           data: {
             cartId: cart.id,
-            serviceId: serviceItem.serviceId,
-            serviceItemId: serviceItem.id,
-            quantity: item.quantity || 1,
+            serviceId,
+            serviceItemId,
+            quantity,
+          },
+          include: {
+            service: true,
+            serviceItem: true,
           },
         })
       }
 
-      const updatedCart = await prisma.cart.findUnique({
-        where: { sessionId },
-        include: { items: { include: { service: true, serviceItem: true } } },
+      res.status(201).json({
+        success: true,
+        data: cartItem,
       })
-
-      res.json({ success: true, data: formatCart(updatedCart), message: "Item added to cart" })
     } catch (error) {
       console.error("Error adding to cart:", error)
-      res.status(500).json({ success: false, error: "Failed to add item to cart" })
-    }
-  }
-)
-
-// PUT /api/cart/:serviceItemId - Update quantity
-router.put(
-  "/:serviceItemId",
-  [body("quantity").isInt({ min: 1 }).withMessage("Quantity must be >= 1")],
-  async (req, res) => {
-    try {
-      const errors = validationResult(req)
-      if (!errors.isEmpty()) return res.status(400).json({ success: false, errors: errors.array() })
-
-      const { serviceItemId } = req.params
-      const { quantity, sessionId = "default" } = req.body
-
-      const cart = await prisma.cart.findUnique({ where: { sessionId } })
-      if (!cart) return res.status(404).json({ success: false, error: "Cart not found" })
-
-      const cartItem = await prisma.cartItem.findUnique({
-        where: { cartId_serviceItemId: { cartId: cart.id, serviceItemId } },
+      res.status(500).json({
+        success: false,
+        error: "Failed to add to cart",
       })
-      if (!cartItem) return res.status(404).json({ success: false, error: "Item not in cart" })
-
-      await prisma.cartItem.update({ where: { id: cartItem.id }, data: { quantity } })
-
-      res.json({ success: true, message: "Cart item updated" })
-    } catch (error) {
-      console.error("Error updating cart item:", error)
-      res.status(500).json({ success: false, error: "Failed to update cart item" })
     }
-  }
+  },
 )
 
-// DELETE /api/cart/:serviceItemId - Remove item
-router.delete("/:serviceItemId", async (req, res) => {
+// DELETE /api/cart/items/:id - Remove item from cart
+router.delete("/items/:id", async (req, res) => {
   try {
-    const { serviceItemId } = req.params
-    const { sessionId = "default" } = req.query
+    const { id } = req.params
 
-    const cart = await prisma.cart.findUnique({ where: { sessionId } })
-    if (!cart) return res.status(404).json({ success: false, error: "Cart not found" })
+    await prisma.cartItem.delete({
+      where: { id },
+    })
 
-    await prisma.cartItem.deleteMany({ where: { cartId: cart.id, serviceItemId } })
-
-    res.json({ success: true, message: "Item removed from cart" })
+    res.json({
+      success: true,
+      message: "Item removed from cart",
+    })
   } catch (error) {
-    console.error("Error removing cart item:", error)
-    res.status(500).json({ success: false, error: "Failed to remove item" })
-  }
-})
-
-// DELETE /api/cart - Clear cart
-router.delete("/", async (req, res) => {
-  try {
-    const { sessionId = "default" } = req.query
-
-    const cart = await prisma.cart.findUnique({ where: { sessionId } })
-    if (cart) {
-      await prisma.cartItem.deleteMany({ where: { cartId: cart.id } })
-    }
-
-    res.json({ success: true, message: "Cart cleared" })
-  } catch (error) {
-    console.error("Error clearing cart:", error)
-    res.status(500).json({ success: false, error: "Failed to clear cart" })
+    console.error("Error removing from cart:", error)
+    res.status(500).json({
+      success: false,
+      error: "Failed to remove from cart",
+    })
   }
 })
 

@@ -20,12 +20,9 @@ const PORT = process.env.PORT || 3001
 app.use(helmet())
 app.use(
   cors({
-    origin: [
-      "http://localhost:3000",
-      "https://main.d7q8zpc0vg3v1.amplifyapp.com"
-    ],
+    origin: process.env.FRONTEND_URL || "*",
     credentials: true,
-  })
+  }),
 )
 
 // Rate limiting
@@ -48,7 +45,7 @@ app.get("/", (req, res) => {
   res.json({
     message: "🚀 Freshora Backend API is running",
     health: "/health",
-    endpoints: ["/api/services", "/api/orders", "/api/cart"]
+    endpoints: ["/api/services", "/api/orders", "/api/cart"],
   })
 })
 
