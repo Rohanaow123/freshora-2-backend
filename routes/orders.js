@@ -40,28 +40,39 @@ router.post(
         specialInstructions,
       } = req.body
 
-      // Validate serviceId and serviceItemId for each item
-      for (const item of items) {
-        const serviceExists = await prisma.service.findUnique({ where: { id: item.serviceId } })
-        if (!serviceExists) {
-          return res.status(400).json({
-            success: false,
-            error: `Invalid serviceId: ${item.serviceId}`,
-          })
-        }
+      // 1️⃣ Lookup all serviceItems for given IDs
+      const serviceItemIds = items.map(item => item.serviceItemId)
+      const serviceItems = await prisma.serviceItem.findMany({
+        where: { id: { in: serviceItemIds } },
+      })
 
-        const serviceItem = await prisma.serviceItem.findUnique({ where: { id: item.serviceItemId } })
-        if (!serviceItem || serviceItem.serviceId !== item.serviceId) {
-          return res.status(400).json({
-            success: false,
-            error: `Invalid serviceItemId: ${item.serviceItemId} for serviceId: ${item.serviceId}`,
-          })
-        }
+      if (serviceItems.length !== serviceItemIds.length) {
+        const invalidIds = serviceItemIds.filter(
+          id => !serviceItems.find(si => si.id === id)
+        )
+        return res.status(400).json({
+          success: false,
+          error: `Invalid serviceItemIds: ${invalidIds.join(", ")}`,
+        })
       }
 
+      // 2️⃣ Merge serviceId into items for order creation
+      const itemsWithServiceId = items.map(item => {
+        const si = serviceItems.find(si => si.id === item.serviceItemId)
+        return {
+          serviceId: si.serviceId,
+          serviceItemId: item.serviceItemId,
+          quantity: item.quantity,
+          price: Number.parseFloat(item.price),
+          totalPrice: Number.parseFloat(item.price) * item.quantity,
+        }
+      })
+
+      // 3️⃣ Generate order ID
       const orderId = generateOrderId()
 
-      const order = await prisma.order.create({
+      // 4️⃣ Create the order
+      const newOrder = await prisma.order.create({
         data: {
           orderId,
           customerName,
@@ -75,13 +86,7 @@ router.post(
           deliveryDate: deliveryDate ? new Date(deliveryDate) : null,
           specialInstructions,
           items: {
-            create: items.map((item) => ({
-              serviceId: item.serviceId,
-              serviceItemId: item.serviceItemId,
-              quantity: item.quantity,
-              price: Number.parseFloat(item.price),
-              totalPrice: Number.parseFloat(item.price) * item.quantity,
-            })),
+            create: itemsWithServiceId,
           },
         },
         include: {
@@ -94,24 +99,25 @@ router.post(
         },
       })
 
-      // Send confirmation email (don't fail if email fails)
+      // 5️⃣ Send confirmation email (don't fail if email fails)
       try {
         await sendOrderConfirmationEmail({
           customerEmail,
           customerName,
-          orderId: order.orderId,
-          totalAmount: order.totalAmount,
-          items: order.items,
-          pickupDate: order.pickupDate,
-          deliveryDate: order.deliveryDate,
+          orderId: newOrder.orderId,
+          totalAmount: newOrder.totalAmount,
+          items: newOrder.items,
+          pickupDate: newOrder.pickupDate,
+          deliveryDate: newOrder.deliveryDate,
         })
       } catch (emailError) {
         console.error("Failed to send confirmation email:", emailError)
       }
 
+      // 6️⃣ Return response
       res.status(201).json({
         success: true,
-        data: order,
+        data: newOrder,
         message: "Order placed successfully! Check your email for tracking information.",
       })
     } catch (error) {
