@@ -13,25 +13,29 @@ function generateOrderId() {
 // GET /api/orders/track/:orderId
 router.get("/track/:orderId", async (req, res) => {
   try {
-    const { orderId } = req.params;
-
     const order = await prisma.order.findUnique({
-      where: { orderId },
+      where: { orderId: req.params.orderId },   // ✅ FIX: use orderId not id
       include: {
-        items: { include: { service: true, serviceItem: true } },
+        items: {
+          include: {
+            service: true,
+            serviceItem: true,
+          },
+        },
       },
     });
 
     if (!order) {
-      return res.status(404).json({ success: false, error: "Order not found" });
+      return res.json({ success: false, error: "Order not found" });
     }
 
     res.json({ success: true, data: order });
-  } catch (error) {
-    console.error("Error fetching order:", error);
-    res.status(500).json({ success: false, error: "Failed to fetch order" });
+  } catch (err) {
+    console.error("Error fetching order:", err);
+    res.status(500).json({ success: false, error: "Server error" });
   }
 });
+
 
 // GET /api/orders/:orderId - Get order by ID
 router.get("/:orderId", async (req, res) => {
