@@ -47,6 +47,7 @@ model ServiceItem {
 
 model Order {
   id                  String      @id @default(cuid())
+  orderId             String      @unique
   customerName        String
   customerEmail       String
   customerPhone       String?
