@@ -10,88 +10,6 @@ function generateOrderId() {
   const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase()
   return `ORD-${timestamp}-${randomStr}`
 }
-// GET /api/orders/track/:orderId
-router.get("/track/:orderId", async (req, res) => {
-  try {
-    const order = await prisma.order.findUnique({
-      where: { orderId: req.params.orderId },   // ✅ FIX: use orderId not id
-      include: {
-        items: {
-          include: {
-            service: true,
-            serviceItem: true,
-          },
-        },
-      },
-    });
-
-    if (!order) {
-      return res.json({ success: false, error: "Order not found" });
-    }
-
-    res.json({ success: true, data: order });
-  } catch (err) {
-    console.error("Error fetching order:", err);
-    res.status(500).json({ success: false, error: "Server error" });
-  }
-});
-
-
-// GET /api/orders/:orderId - Get order by ID
-router.get("/:orderId", async (req, res) => {
-  try {
-    const { orderId } = req.params;
-
-    const order = await prisma.order.findUnique({
-      where: { orderId },
-      include: {
-        items: {
-          include: {
-            service: true,
-            serviceItem: true,
-          },
-        },
-      },
-    });
-
-    if (!order) {
-      return res.status(404).json({ success: false, error: "Order not found" });
-    }
-
-    res.json({ success: true, data: order });
-  } catch (error) {
-    console.error("Error fetching order:", error);
-    res.status(500).json({ success: false, error: "Failed to fetch order" });
-  }
-});
-
-// GET /api/orders - Get all orders
-router.get("/", async (req, res) => {
-  try {
-    const orders = await prisma.order.findMany({
-      include: {
-        items: {
-          include: {
-            service: true,
-            serviceItem: true,
-          },
-        },
-      },
-      orderBy: { createdAt: "desc" },
-    })
-
-    res.json({
-      success: true,
-      data: orders,
-    })
-  } catch (error) {
-    console.error("Error fetching orders:", error)
-    res.status(500).json({
-      success: false,
-      error: "Failed to fetch orders",
-    })
-  }
-})
 
 // POST /api/orders - Create new order
 router.post(
@@ -122,11 +40,30 @@ router.post(
         specialInstructions,
       } = req.body
 
+      // Validate serviceId and serviceItemId for each item
+      for (const item of items) {
+        const serviceExists = await prisma.service.findUnique({ where: { id: item.serviceId } })
+        if (!serviceExists) {
+          return res.status(400).json({
+            success: false,
+            error: `Invalid serviceId: ${item.serviceId}`,
+          })
+        }
+
+        const serviceItem = await prisma.serviceItem.findUnique({ where: { id: item.serviceItemId } })
+        if (!serviceItem || serviceItem.serviceId !== item.serviceId) {
+          return res.status(400).json({
+            success: false,
+            error: `Invalid serviceItemId: ${item.serviceItemId} for serviceId: ${item.serviceId}`,
+          })
+        }
+      }
+
       const orderId = generateOrderId()
 
       const order = await prisma.order.create({
         data: {
-          orderId, // Added orderId field
+          orderId,
           customerName,
           customerEmail,
           customerPhone,
@@ -157,6 +94,7 @@ router.post(
         },
       })
 
+      // Send confirmation email (don't fail if email fails)
       try {
         await sendOrderConfirmationEmail({
           customerEmail,
@@ -169,12 +107,12 @@ router.post(
         })
       } catch (emailError) {
         console.error("Failed to send confirmation email:", emailError)
-        // Don't fail the order creation if email fails
       }
 
       res.status(201).json({
         success: true,
         data: order,
+        message: "Order placed successfully! Check your email for tracking information.",
       })
     } catch (error) {
       console.error("Error creating order:", error)
@@ -183,7 +121,7 @@ router.post(
         error: "Failed to create order",
       })
     }
-  },
+  }
 )
 
 export default router
