@@ -10,6 +10,33 @@ function generateOrderId() {
   const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase()
   return `ORD-${timestamp}-${randomStr}`
 }
+// GET /api/orders/:orderId - Get order by ID
+router.get("/:orderId", async (req, res) => {
+  try {
+    const { orderId } = req.params;
+
+    const order = await prisma.order.findUnique({
+      where: { orderId },
+      include: {
+        items: {
+          include: {
+            service: true,
+            serviceItem: true,
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      return res.status(404).json({ success: false, error: "Order not found" });
+    }
+
+    res.json({ success: true, data: order });
+  } catch (error) {
+    console.error("Error fetching order:", error);
+    res.status(500).json({ success: false, error: "Failed to fetch order" });
+  }
+});
 
 // GET /api/orders - Get all orders
 router.get("/", async (req, res) => {
