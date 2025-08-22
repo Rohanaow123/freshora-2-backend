@@ -1,16 +1,3 @@
-import express from "express"
-import { body, validationResult } from "express-validator"
-import { prisma } from "../lib/prisma.js"
-import { sendOrderConfirmationEmail } from "../lib/email.js"
-
-const router = express.Router()
-
-function generateOrderId() {
-  const timestamp = Date.now().toString(36)
-  const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase()
-  return `ORD-${timestamp}-${randomStr}`
-}
-
 // POST /api/orders - Create new order
 router.post(
   "/",
@@ -40,15 +27,25 @@ router.post(
         specialInstructions,
       } = req.body
 
-      // 1️⃣ Lookup all serviceItems for given IDs
-      const serviceItemIds = items.map(item => item.serviceItemId)
+      // 🔹 Normalize serviceItemIds (strip combined IDs like serviceId-serviceItemId)
+      const normalizedItems = items.map((item) => {
+        let rawId = item.serviceItemId
+        if (rawId.includes("-")) {
+          const parts = rawId.split("-")
+          rawId = parts[parts.length - 1] // always take the last part
+        }
+        return { ...item, serviceItemId: rawId }
+      })
+
+      const serviceItemIds = normalizedItems.map((i) => i.serviceItemId)
+
       const serviceItems = await prisma.serviceItem.findMany({
         where: { id: { in: serviceItemIds } },
       })
 
       if (serviceItems.length !== serviceItemIds.length) {
         const invalidIds = serviceItemIds.filter(
-          id => !serviceItems.find(si => si.id === id)
+          (id) => !serviceItems.find((si) => si.id === id)
         )
         return res.status(400).json({
           success: false,
@@ -56,9 +53,9 @@ router.post(
         })
       }
 
-      // 2️⃣ Merge serviceId into items for order creation
-      const itemsWithServiceId = items.map(item => {
-        const si = serviceItems.find(si => si.id === item.serviceItemId)
+      // Merge serviceId into items
+      const itemsWithServiceId = normalizedItems.map((item) => {
+        const si = serviceItems.find((si) => si.id === item.serviceItemId)
         return {
           serviceId: si.serviceId,
           serviceItemId: item.serviceItemId,
@@ -68,10 +65,8 @@ router.post(
         }
       })
 
-      // 3️⃣ Generate order ID
       const orderId = generateOrderId()
 
-      // 4️⃣ Create the order
       const newOrder = await prisma.order.create({
         data: {
           orderId,
@@ -99,7 +94,6 @@ router.post(
         },
       })
 
-      // 5️⃣ Send confirmation email (don't fail if email fails)
       try {
         await sendOrderConfirmationEmail({
           customerEmail,
@@ -114,7 +108,6 @@ router.post(
         console.error("Failed to send confirmation email:", emailError)
       }
 
-      // 6️⃣ Return response
       res.status(201).json({
         success: true,
         data: newOrder,
@@ -122,12 +115,7 @@ router.post(
       })
     } catch (error) {
       console.error("Error creating order:", error)
-      res.status(500).json({
-        success: false,
-        error: "Failed to create order",
-      })
+      res.status(500).json({ success: false, error: "Failed to create order" })
     }
   }
 )
-
-export default router
